@@ -1,0 +1,24 @@
+---
+- name: Get the config file
+  slurp:
+    src: "{{ config_file_path }}"
+  register: config_file
+- set_fact:
+    config_file_decoded: "{{ config_file.content | b64decode }}"
+- debug:
+    msg: "{{ config_file_decoded }}"
+- name: Apply the configmap update
+  k8s:
+    state: present
+    definition:
+      api_version: v1
+      metadata:
+        name: "{{ config_file_path | regex_replace('^.*\\/(.*)\\.json', '\\1') | lower }}"
+        namespace: covid
+      kind: ConfigMap
+      data:
+        appsettings.Production.json: |
+            {{ config_file_decoded | to_json }}
+    host: https://api.ca-central-1.starter.openshift-online.com:6443
+    api_key: ze47el0h0BwmD1zQklcgtF6HvC_atD27kuoPePERSLU
+    apply: yes
